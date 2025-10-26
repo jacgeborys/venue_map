@@ -43,5 +43,5 @@ def run_gastronomy_maps(args):
 if __name__ == "__main__":
     # For direct execution in PyCharm - generate all gastronomy maps
     import sys
-    sys.argv = ['main.py', 'gastronomy', 'oslo', '--background', 'full']
+    sys.argv = ['main.py', 'gastronomy', 'all', '--background', 'full']
     main()

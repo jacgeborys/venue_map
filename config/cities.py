@@ -3,213 +3,231 @@
 # OSM queries use coordinates with bounding box instead
 
 CITIES = {
-    'warszawa': {
-            'name': 'Warsaw',
-            'center': (52.2297, 21.0122),
-            'bounds_km': 10,
-            'utm_zone': 34  # UTM Zone 34N for Poland
-        },
-        'gdansk': {
-            'name': 'Gdańsk',
-            'center': (54.3620, 18.6266),
-            'bounds_km': 10,
-            'utm_zone': 33  # UTM Zone 33N
-        },
-        'krakow': {
-            'name': 'Kraków',
-            'center': (50.0647, 19.9450),
-            'bounds_km': 10,
-            'utm_zone': 34  # UTM Zone 34N
-        },
-        'berlin': {
-            'name': 'Berlin',
-            'center': (52.5200, 13.4050),
-            'bounds_km': 10,
-            'utm_zone': 33  # UTM Zone 33N
-        },
-        'poznan': {
-            'name': 'Poznań',
-            'center': (52.4064, 16.9252),
-            'bounds_km': 10,
-            'utm_zone': 33  # UTM Zone 33N
-        },
-        'wroclaw': {
-            'name': 'Wrocław',
-            'center': (51.1079, 17.0385),
-            'bounds_km': 10,
-            'utm_zone': 33  # UTM Zone 33N
-        },
-        'vienna': {
-            'name': 'Vienna',
-            'center': (48.2082, 16.3738),
-            'bounds_km': 10,
-            'utm_zone': 33  # UTM Zone 33N
-        },
-        'budapest': {
-            'name': 'Budapest',
-            'center': (47.4979, 19.0702),
-            'bounds_km': 10,
-            'utm_zone': 34  # UTM Zone 34N
-        },
-        'amsterdam': {
-            'name': 'Amsterdam',
-            'center': (52.3676, 4.9041),
-            'bounds_km': 10,
-            'utm_zone': 31  # UTM Zone 31N
-        },
-        'stockholm': {
-            'name': 'Stockholm',
-            'center': (59.3293, 18.0686),
-            'bounds_km': 10,
-            'utm_zone': 34  # UTM Zone 34N
-        },
-        'helsinki': {
-            'name': 'Helsinki',
-            'center': (60.1899, 24.9384),
-            'bounds_km': 10,
-            'utm_zone': 35  # UTM Zone 35N
-        },
-        'petersburg': {
-            'name': 'St. Petersburg',
-            'center': (59.9511, 30.3309),
-            'bounds_km': 10,
-            'utm_zone': 36  # UTM Zone 36N
-        },
-        'milan': {
-            'name': 'Milan',
-            'center': (45.4642, 9.1900),
-            'bounds_km': 10,
-            'utm_zone': 32  # UTM Zone 32N
-        },
-        'munich': {
-            'name': 'Munich',
-            'center': (48.1351, 11.5820),
-            'bounds_km': 10,
-            'utm_zone': 32  # UTM Zone 32N
-        },
-        'copenhagen': {
-            'name': 'Copenhagen',
-            'center': (55.6761, 12.5583),
-            'bounds_km': 10,
-            'utm_zone': 33  # UTM Zone 33N (corrected)
-        },
-        'prague': {
-            'name': 'Prague',
-            'center': (50.0755, 14.4378),
-            'bounds_km': 10,
-            'utm_zone': 33  # UTM Zone 33N
-        },
-        'bratislava': {
-            'name': 'Bratislava',
-            'center': (48.1482, 17.1067),
-            'bounds_km': 10,
-            'utm_zone': 33  # UTM Zone 33N
-        },
-        'madrid': {
-            'name': 'Madrid',
-            'center': (40.4168, -3.7038),
-            'bounds_km': 10,
-            'utm_zone': 30  # UTM Zone 30N
-        },
-        'barcelona': {
-            'name': 'Barcelona',
-            'center': (41.3851, 2.1534),
-            'bounds_km': 10,
-            'utm_zone': 31  # UTM Zone 31N
-        },
-        'lisbon': {
-            'name': 'Lisbon',
-            'center': (38.7223, -9.1393),
-            'bounds_km': 10,
-            'utm_zone': 29  # UTM Zone 29N
-        },
-        'london': {
-            'name': 'London',
-            'center': (51.5074, -0.1278),
-            'bounds_km': 10,
-            'utm_zone': 30  # UTM Zone 30N
-        },
-        'lyon': {
-            'name': 'Lyon',
-            'center': (45.7640, 4.8357),
-            'bounds_km': 10,
-            'utm_zone': 31  # UTM Zone 31N
-        },
-        'minsk': {
-            'name': 'Minsk',
-            'center': (53.9045, 27.5590),
-            'bounds_km': 10,
-            'utm_zone': 35  # UTM Zone 35N
-        },
-        'kyiv': {
-            'name': 'Kyiv',
-            'center': (50.4501, 30.5234),
-            'bounds_km': 10,
-            'utm_zone': 36  # UTM Zone 36N
-        },
-        'san_francisco': {
-            'name': 'San Francisco',
-            'center': (37.7749, -122.4394),
-            'bounds_km': 10,
-            'utm_zone': 10  # UTM Zone 10N for California
-        },
-        'new_york': {
-            'name': 'New York',
-            'center': (40.7328, -73.9760),
-            'bounds_km': 10,
-            'utm_zone': 18  # UTM Zone 18N for New York
-        },
-        'los_angeles': {
-            'name': 'Los Angeles',
-            'center': (34.0522, -118.2437),
-            'bounds_km': 10,
-            'utm_zone': 11  # UTM Zone 11N for California
-        },
-        'chicago': {
-            'name': 'Chicago',
-            'center': (41.8781, -87.6698),
-            'bounds_km': 10,
-            'utm_zone': 16  # UTM Zone 16N for Illinois
-        },
-        'boston': {
-            'name': 'Boston',
-            'center': (42.3601, -71.0589),
-            'bounds_km': 10,
-            'utm_zone': 19  # UTM Zone 19N for Massachusetts
-        },
-        'paris': {
-            'name': 'Paris',
-            'center': (48.8566, 2.3522),
-            'bounds_km': 10,
-            'utm_zone': 31  # UTM Zone 31N
-        },
-        'kuala_lumpur': {
-            'name': 'Kuala Lumpur',
-            'center': (3.139, 101.6869),
-            'bounds_km': 10,
-            'utm_zone': 47  # UTM Zone 47N for Malaysia
-        },
-        'singapore': {
-            'name': 'Singapore',
-            'center': (1.2921, 103.8498),
-            'bounds_km': 10,
-            'utm_zone': 48  # UTM Zone 48N for Singapore
-        },
-        'tokyo': {
-            'name': 'Tokyo',
-            'center': (35.6762, 139.7603),
-            'bounds_km': 10,
-            'utm_zone': 54  # UTM Zone 54N for Japan
-        },
-        'seoul': {
-            'name': 'Seoul',
-            'center': (37.5665, 126.9780),
-            'bounds_km': 10,
-            'utm_zone': 52  # UTM Zone 52N for South Korea
-        },
+    # 'warszawa': {
+    #         'name': 'Warsaw',
+    #         'center': (52.2297, 21.0122),
+    #         'bounds_km': 10,
+    #         'utm_zone': 34  # UTM Zone 34N for Poland
+    #     },
+    #     'gdansk': {
+    #         'name': 'Gdańsk',
+    #         'center': (54.3620, 18.6266),
+    #         'bounds_km': 10,
+    #         'utm_zone': 33  # UTM Zone 33N
+    #     },
+        # 'krakow': {
+        #     'name': 'Kraków',
+        #     'center': (50.0647, 19.9450),
+        #     'bounds_km': 10,
+        #     'utm_zone': 34  # UTM Zone 34N
+        # },
+        # 'berlin': {
+        #     'name': 'Berlin',
+        #     'center': (52.5200, 13.4050),
+        #     'bounds_km': 10,
+        #     'utm_zone': 33  # UTM Zone 33N
+        # },
+        # 'poznan': {
+        #     'name': 'Poznań',
+        #     'center': (52.4064, 16.9252),
+        #     'bounds_km': 10,
+        #     'utm_zone': 33  # UTM Zone 33N
+        # },
+        # 'wroclaw': {
+        #     'name': 'Wrocław',
+        #     'center': (51.1079, 17.0385),
+        #     'bounds_km': 10,
+        #     'utm_zone': 33  # UTM Zone 33N
+        # },
+        # 'vienna': {
+        #     'name': 'Vienna',
+        #     'center': (48.2082, 16.3738),
+        #     'bounds_km': 10,
+        #     'utm_zone': 33  # UTM Zone 33N
+        # },
+        # 'budapest': {
+        #     'name': 'Budapest',
+        #     'center': (47.4979, 19.0702),
+        #     'bounds_km': 10,
+        #     'utm_zone': 34  # UTM Zone 34N
+        # },
+        # 'amsterdam': {
+        #     'name': 'Amsterdam',
+        #     'center': (52.3676, 4.9041),
+        #     'bounds_km': 10,
+        #     'utm_zone': 31  # UTM Zone 31N
+        # },
+        # 'stockholm': {
+        #     'name': 'Stockholm',
+        #     'center': (59.3293, 18.0686),
+        #     'bounds_km': 10,
+        #     'utm_zone': 34  # UTM Zone 34N
+        # },
+        # 'helsinki': {
+        #     'name': 'Helsinki',
+        #     'center': (60.1899, 24.9384),
+        #     'bounds_km': 10,
+        #     'utm_zone': 35  # UTM Zone 35N
+        # },
+        # 'petersburg': {
+        #     'name': 'St. Petersburg',
+        #     'center': (59.9511, 30.3309),
+        #     'bounds_km': 10,
+        #     'utm_zone': 36  # UTM Zone 36N
+        # },
+        # 'milan': {
+        #     'name': 'Milan',
+        #     'center': (45.4642, 9.1900),
+        #     'bounds_km': 10,
+        #     'utm_zone': 32  # UTM Zone 32N
+        # },
+        # 'munich': {
+        #     'name': 'Munich',
+        #     'center': (48.1351, 11.5820),
+        #     'bounds_km': 10,
+        #     'utm_zone': 32  # UTM Zone 32N
+        # },
+        # 'copenhagen': {
+        #     'name': 'Copenhagen',
+        #     'center': (55.6761, 12.5583),
+        #     'bounds_km': 10,
+        #     'utm_zone': 33  # UTM Zone 33N (corrected)
+        # },
+        # 'vilnius': {
+        #     'name': 'Vilnius',
+        #     'center': (54.6872, 25.2797),
+        #     'bounds_km': 10,
+        #     'utm_zone': 35  # UTM Zone 35N
+        # },
+        # 'riga': {
+        #     'name': 'Riga',
+        #     'center': (56.9496, 24.1052),
+        #     'bounds_km': 10,
+        #     'utm_zone': 35  # UTM Zone 35N
+        # },
+        # 'tallinn': {
+        #     'name': 'Tallinn',
+        #     'center': (59.4370, 24.7536),
+        #     'bounds_km': 10,
+        #     'utm_zone': 35  # UTM Zone 35N
+        # },
+        #  'prague': {
+        #     'name': 'Prague',
+        #     'center': (50.0755, 14.4378),
+        #     'bounds_km': 10,
+        #     'utm_zone': 33  # UTM Zone 33N
+        # },
+        # 'bratislava': {
+        #     'name': 'Bratislava',
+        #     'center': (48.1482, 17.1067),
+        #     'bounds_km': 10,
+        #     'utm_zone': 33  # UTM Zone 33N
+        # },
+        # 'madrid': {
+        #     'name': 'Madrid',
+        #     'center': (40.4168, -3.7038),
+        #     'bounds_km': 10,
+        #     'utm_zone': 30  # UTM Zone 30N
+        # },
+        # 'barcelona': {
+        #     'name': 'Barcelona',
+        #     'center': (41.3851, 2.1534),
+        #     'bounds_km': 10,
+        #     'utm_zone': 31  # UTM Zone 31N
+        # },
+        # 'lisbon': {
+        #     'name': 'Lisbon',
+        #     'center': (38.7223, -9.1393),
+        #     'bounds_km': 10,
+        #     'utm_zone': 29  # UTM Zone 29N
+        # },
+        # 'london': {
+        #     'name': 'London',
+        #     'center': (51.5074, -0.1278),
+        #     'bounds_km': 10,
+        #     'utm_zone': 30  # UTM Zone 30N
+        # },
+        # 'lyon': {
+        #     'name': 'Lyon',
+        #     'center': (45.7640, 4.8357),
+        #     'bounds_km': 10,
+        #     'utm_zone': 31  # UTM Zone 31N
+        # },
+        # 'minsk': {
+        #     'name': 'Minsk',
+        #     'center': (53.9045, 27.5590),
+        #     'bounds_km': 10,
+        #     'utm_zone': 35  # UTM Zone 35N
+        # },
+        # 'kyiv': {
+        #     'name': 'Kyiv',
+        #     'center': (50.4501, 30.5234),
+        #     'bounds_km': 10,
+        #     'utm_zone': 36  # UTM Zone 36N
+        # },
+        # 'san_francisco': {
+        #     'name': 'San Francisco',
+        #     'center': (37.7749, -122.4394),
+        #     'bounds_km': 10,
+        #     'utm_zone': 10  # UTM Zone 10N for California
+        # },
+        # 'new_york': {
+        #     'name': 'New York',
+        #     'center': (40.7328, -73.9760),
+        #     'bounds_km': 10,
+        #     'utm_zone': 18  # UTM Zone 18N for New York
+        # },
+        # 'los_angeles': {
+        #     'name': 'Los Angeles',
+        #     'center': (34.0522, -118.2437),
+        #     'bounds_km': 10,
+        #     'utm_zone': 11  # UTM Zone 11N for California
+        # },
+        # 'chicago': {
+        #     'name': 'Chicago',
+        #     'center': (41.8781, -87.6698),
+        #     'bounds_km': 10,
+        #     'utm_zone': 16  # UTM Zone 16N for Illinois
+        # },
+        # 'boston': {
+        #     'name': 'Boston',
+        #     'center': (42.3601, -71.0589),
+        #     'bounds_km': 10,
+        #     'utm_zone': 19  # UTM Zone 19N for Massachusetts
+        # },
+        # 'paris': {
+        #     'name': 'Paris',
+        #     'center': (48.8566, 2.3522),
+        #     'bounds_km': 10,
+        #     'utm_zone': 31  # UTM Zone 31N
+        # },
+        # 'kuala_lumpur': {
+        #     'name': 'Kuala Lumpur',
+        #     'center': (3.139, 101.6869),
+        #     'bounds_km': 10,
+        #     'utm_zone': 47  # UTM Zone 47N for Malaysia
+        # },
+        # 'singapore': {
+        #     'name': 'Singapore',
+        #     'center': (1.2921, 103.8498),
+        #     'bounds_km': 10,
+        #     'utm_zone': 48  # UTM Zone 48N for Singapore
+        # },
+        # 'tokyo': {
+        #     'name': 'Tokyo',
+        #     'center': (35.6762, 139.7603),
+        #     'bounds_km': 10,
+        #     'utm_zone': 54  # UTM Zone 54N for Japan
+        # },
+        # 'seoul': {
+        #     'name': 'Seoul',
+        #     'center': (37.5665, 126.9780),
+        #     'bounds_km': 10,
+        #     'utm_zone': 52  # UTM Zone 52N for South Korea
+        # },
         'sydney': {
             'name': 'Sydney',
-            'center': (-33.8688, 151.1913),
+            'center': (-33.8688, 151.2013),
             'bounds_km': 10,
             'utm_zone': 56,
             'hemisphere': 'S'  # Specify Southern Hemisphere
@@ -443,7 +461,7 @@ CITIES = {
     },
     'dubai': {
         'name': 'Dubai',
-        'center': (25.1448, 55.2708),
+        'center': (25.1348, 55.2808),
         'bounds_km': 30,
         'utm_zone': 40  # UTM Zone 40N for UAE
     },

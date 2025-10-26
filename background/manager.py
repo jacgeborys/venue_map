@@ -49,7 +49,10 @@ class BackgroundManager:
             print(f"    Greenery: {len(processed['greenery'])} areas")
 
         if 'water' in background_data:
-            processed['water'] = self.water_processor.process_water(background_data['water'], transformer)
+            # --- START OF MODIFICATION ---
+            # Pass map_bounds to the water processor for clipping.
+            processed['water'] = self.water_processor.process_water(background_data['water'], transformer, map_bounds)
+            # --- END OF MODIFICATION ---
             water_count = len(processed['water'].get('polygons', [])) + len(processed['water'].get('lines', []))
             print(f"    Water: {water_count} features")
 

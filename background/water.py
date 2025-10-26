@@ -106,186 +106,115 @@ def connect_coastlines_to_polygon(lines, buffer_distance=0.001):
 
     return None
 
-def assemble_multipolygon_working(relation, result, transformer):
+def assemble_multipolygon_working(relation, result, transformer, map_bounds=None):
     """Working multipolygon assembly - transform coordinates early to preserve holes."""
     outer_polys = []
-    inner_polys = []
-    all_outer_segments = []  # ALL outer segments, coastline or not
-    all_inner_segments = []  # ALL inner segments, coastline or not
+    inner_geometries = []
+    all_outer_segments = []
+    all_inner_segments = []
 
     relation_name = relation.tags.get('name', 'Unknown')
     print(f"      Processing {len(relation.members)} members for {relation_name}...")
 
-    # Collect all member ways by role - combine ALL boundary types
+    # Collect all member ways by role
     for member in relation.members:
         if isinstance(member, overpy.RelationWay):
             try:
                 way = result.get_way(member.ref)
                 coords = [(node.lon, node.lat) for node in way.nodes]
+                if len(coords) < 2: continue
 
-                if len(coords) >= 2:
-                    # Transform coordinates immediately
-                    transformed_coords = []
-                    for lon, lat in coords:
-                        x, y = transformer.transform(lon, lat)
-                        transformed_coords.append((x, y))
+                transformed_coords = [transformer.transform(lon, lat) for lon, lat in coords]
+                is_closed = len(transformed_coords) >= 3 and transformed_coords[0] == transformed_coords[-1]
 
-                    is_coastline = way.tags.get('natural') == 'coastline'
-                    is_closed = len(transformed_coords) >= 3 and transformed_coords[0] == transformed_coords[-1]
-                    way_tags_str = ', '.join([f"{k}={v}" for k, v in way.tags.items()]) if way.tags else "no tags"
+                if member.role == 'outer':
+                    all_outer_segments.append(LineString(transformed_coords))
+                    if is_closed and len(transformed_coords) >= 4:
+                        try:
+                            poly = make_valid(Polygon(transformed_coords))
+                            if hasattr(poly, 'area') and poly.area > 0: outer_polys.append(poly)
+                        except Exception: continue
+                elif member.role == 'inner':
+                    all_inner_segments.append(LineString(transformed_coords))
+                    if is_closed and len(transformed_coords) >= 4:
+                        try:
+                            poly = make_valid(Polygon(transformed_coords))
+                            if hasattr(poly, 'area') and poly.area > 0:
+                                inner_geometries.append({'geom': poly, 'tags': way.tags})
+                        except Exception: continue
+            except Exception: continue
 
-                    print(f"        Way {member.ref} ({member.role}): {len(transformed_coords)} coords, closed={is_closed}, tags=[{way_tags_str}]")
-
-                    if member.role == 'outer':
-                        # For outer ways, collect everything as line segments to be connected
-                        all_outer_segments.append(LineString(transformed_coords))
-
-                        # Also check if it's already a valid closed polygon
-                        if is_closed and len(transformed_coords) >= 4:
-                            try:
-                                poly = Polygon(transformed_coords)
-                                if poly.is_valid and poly.area > 0:
-                                    outer_polys.append(poly)
-                                    print(f"        ✓ Added complete outer polygon from way {member.ref}")
-                                else:
-                                    # Try to fix invalid polygons
-                                    fixed_poly = make_valid(poly)
-                                    if hasattr(fixed_poly, 'area') and fixed_poly.area > 0:
-                                        outer_polys.append(fixed_poly)
-                                        print(f"        ✓ Added fixed outer polygon from way {member.ref}")
-                            except Exception as e:
-                                print(f"        Warning: Invalid outer polygon from way {member.ref}: {e}")
-
-                    elif member.role == 'inner':
-                        # For inner ways, collect everything as line segments to be connected
-                        all_inner_segments.append(LineString(transformed_coords))
-
-                        # Also check if it's already a valid closed polygon
-                        if is_closed and len(transformed_coords) >= 4:
-                            try:
-                                poly = Polygon(transformed_coords)
-                                if poly.is_valid and poly.area > 0:
-                                    inner_polys.append(poly)
-                                    print(f"        ✓ Added complete inner polygon from way {member.ref} (area: {poly.area:.6f})")
-                                else:
-                                    fixed_poly = make_valid(poly)
-                                    if isinstance(fixed_poly, Polygon) and fixed_poly.area > 0:
-                                        inner_polys.append(fixed_poly)
-                                        print(f"        ✓ Added fixed inner polygon from way {member.ref} (area: {fixed_poly.area:.6f})")
-                            except Exception as e:
-                                print(f"        Warning: Invalid inner polygon from way {member.ref}: {e}")
-
-            except Exception as e:
-                print(f"        Warning: Could not process member way {member.ref}: {e}")
-                continue
-
-    # Only connect outer segments if we have incomplete segments and no complete polygons
-    if all_outer_segments and not outer_polys:
-        print(f"        Connecting {len(all_outer_segments)} incomplete outer segments...")
-        connected_poly = connect_coastlines_to_polygon(all_outer_segments)
-        if connected_poly:
-            outer_polys.append(connected_poly)
-            print(f"        ✓ Successfully connected all outer segments")
-        else:
-            print(f"        ✗ Failed to connect outer segments")
-    elif outer_polys and all_outer_segments:
-        print(f"        Skipping segment connection - already have {len(outer_polys)} complete outer polygons")
-
-    # Only connect inner segments if we have incomplete segments and no complete inner polygons
-    if all_inner_segments and not inner_polys:
-        print(f"        Connecting {len(all_inner_segments)} incomplete inner segments...")
-        connected_inner = connect_coastlines_to_polygon(all_inner_segments)
-        if connected_inner:
-            inner_polys.append(connected_inner)
-            print(f"        ✓ Successfully connected all inner segments")
-
-    # Use polygonize as fallback for incomplete outer segments
-    if all_outer_segments and not outer_polys:
+    # Process outer and inner segments
+    if all_outer_segments:
         try:
-            print(f"        Trying polygonize on {len(all_outer_segments)} outer segments...")
-            polygons = list(polygonize(all_outer_segments))
-            for poly in polygons:
-                if poly.is_valid and poly.area > 0:
-                    outer_polys.append(poly)
-            if outer_polys:
-                print(f"        ✓ Polygonize created {len(outer_polys)} outer polygons")
-        except Exception as e:
-            print(f"        Warning: Polygonize failed: {e}")
-
-    # Use polygonize as fallback for incomplete inner segments
-    if all_inner_segments and not inner_polys:
+            outer_polys.extend([p for p in polygonize(linemerge(all_outer_segments)) if p.is_valid and p.area > 0])
+        except Exception: pass
+    if all_inner_segments:
         try:
-            print(f"        Trying polygonize on {len(all_inner_segments)} inner segments...")
-            polygons = list(polygonize(all_inner_segments))
-            for poly in polygons:
-                if poly.is_valid and poly.area > 0:
-                    inner_polys.append(poly)
-            if inner_polys:
-                print(f"        ✓ Polygonize created {len(inner_polys)} inner polygons")
-        except Exception as e:
-            print(f"        Warning: Inner polygonize failed: {e}")
+            inner_geometries.extend([{'geom': p, 'tags': {}} for p in polygonize(linemerge(all_inner_segments)) if p.is_valid and p.area > 0])
+        except Exception: pass
 
-    if not outer_polys:
-        print(f"        ✗ No valid outer polygons found")
-        return None
+    if not outer_polys: return None
 
     try:
-        print(f"        Assembling final geometry from {len(outer_polys)} outer and {len(inner_polys)} inner polygons...")
+        unified_outer = make_valid(unary_union(outer_polys))
 
-        # Combine outer polygons
-        if len(outer_polys) == 1:
-            unified_outer = outer_polys[0]
-        else:
-            unified_outer = unary_union(outer_polys)
+        # --- START OF CLIPPING MODIFICATION ---
+        # If map_bounds are provided, create a clipping polygon
+        if map_bounds:
+            map_polygon = box(
+                map_bounds['xlim'][0], map_bounds['ylim'][0],
+                map_bounds['xlim'][1], map_bounds['ylim'][1]
+            )
+            # Clip the main water body to the map boundaries
+            print("        Clipping outer geometry to map boundaries...")
+            unified_outer = unified_outer.intersection(map_polygon)
+            if unified_outer.is_empty:
+                print("        Water body is entirely outside map boundaries.")
+                return None
+        # --- END OF CLIPPING MODIFICATION ---
 
-        if not unified_outer.is_valid:
-            unified_outer = make_valid(unified_outer)
-
-        # Apply holes (inner polygons) - but only keep significant ones
         final_geometry = unified_outer
-        if inner_polys:
-            try:
-                # Filter out very small holes (bridge piers, etc.) - keep only significant ones
-                significant_inner_polys = []
-                min_hole_area = 1000.0  # 1000 square meters minimum
 
-                for inner_poly in inner_polys:
-                    if inner_poly.area >= min_hole_area:
-                        significant_inner_polys.append(inner_poly)
-                        print(f"        Keeping significant hole with area: {inner_poly.area:.2f} sq m")
-                    else:
-                        print(f"        Skipping small hole with area: {inner_poly.area:.2f} sq m (bridge pier/etc)")
+        if inner_geometries:
+            significant_inner_polys = []
+            min_hole_area = 1000.0
 
-                if significant_inner_polys:
-                    if len(significant_inner_polys) == 1:
-                        unified_inner = significant_inner_polys[0]
-                    else:
-                        unified_inner = unary_union(significant_inner_polys)
+            print(f"        Smart filtering {len(inner_geometries)} potential holes...")
+            for item in inner_geometries:
+                poly = item['geom']
 
-                    if unified_inner.is_valid:
-                        result_geom = unified_outer.difference(unified_inner)
-                        if hasattr(result_geom, 'area') and result_geom.area > 0:
-                            print(f"        ✓ Successfully created geometry with {len(significant_inner_polys)} significant hole(s), area: {result_geom.area:.6f}")
-                            final_geometry = result_geom
-                        else:
-                            print(f"        Warning: Difference operation failed, using outer only")
+                # --- START OF CLIPPING MODIFICATION ---
+                # Clip each island to the map boundaries BEFORE filtering
+                if map_bounds:
+                    poly = poly.intersection(map_polygon)
+
+                # If the island is completely off-screen after clipping, it becomes empty.
+                if poly.is_empty:
+                    continue
+                # --- END OF CLIPPING MODIFICATION ---
+
+                tags = item['tags']
+                area = poly.area # Use the area of the clipped polygon
+
+                if tags.get('place') in ['island', 'islet']:
+                    print(f"        ✓ Keeping tagged island '{tags.get('name', 'N/A')}' (visible area: {area:.2f} sq m)")
+                    significant_inner_polys.append(poly)
+                elif tags.get('bridge:support') == 'pier' or tags.get('man_made') == 'pier':
+                    print(f"        ✗ Discarding tagged pier (visible area: {area:.2f} sq m)")
+                elif area >= min_hole_area:
+                    print(f"        ✓ Keeping significant untagged hole (visible area: {area:.2f} sq m)")
+                    significant_inner_polys.append(poly)
                 else:
-                    print(f"        No significant holes found (all were < {min_hole_area} sq m)")
-            except Exception as e:
-                print(f"        Warning: Could not apply holes: {e}")
+                    print(f"        ✗ Skipping small untagged hole (visible area: {area:.2f} sq m)")
 
-        # Return the already-transformed geometry
+            if significant_inner_polys:
+                unified_inner = make_valid(unary_union(significant_inner_polys))
+                final_geometry = unified_outer.difference(unified_inner)
+                if not final_geometry.is_valid:
+                    final_geometry = unified_outer
+
         if hasattr(final_geometry, 'area') and final_geometry.area > 0:
-            print(f"        ✓ Final geometry area: {final_geometry.area:.6f}")
-
-            # Debug: Check if holes are actually in the final geometry
-            if hasattr(final_geometry, 'interiors'):
-                actual_holes = list(final_geometry.interiors)
-                print(f"        ✓ Final geometry has {len(actual_holes)} interior rings")
-                for i, interior in enumerate(actual_holes):
-                    coords = list(interior.coords)
-                    print(f"          Interior {i+1}: {len(coords)} coordinates")
-
             return final_geometry
 
     except Exception as e:
@@ -378,7 +307,7 @@ class WaterProcessor:
                     print(f"    Failed to fetch water features: {e}")
                     return {'elements': []}
 
-    def process_water(self, water_data, transformer):
+    def process_water(self, water_data, transformer, map_bounds=None):
         """Process water data with working multipolygon assembly."""
 
         water_features = {
@@ -451,8 +380,8 @@ class WaterProcessor:
                     water_type = water_body.tags.get("natural", water_body.tags.get("place", "water"))
                     print(f"    Processing relation {water_body.id}: {water_type} '{water_name}'...")
 
-                    # Use working multipolygon assembly
-                    geometry = assemble_multipolygon_working(water_body, overpy_result, transformer)
+                    # Use working multipolygon assembly, passing map_bounds
+                    geometry = assemble_multipolygon_working(water_body, overpy_result, transformer, map_bounds)
 
                     if geometry and hasattr(geometry, 'area') and geometry.area > 0:
                         print(f"        Final transformed geometry area: {geometry.area:.6f}")
@@ -540,11 +469,11 @@ class WaterProcessor:
         return water_features
 
     def render_water(self, ax, water_data, style=None):
-        """Render water polygons with proper hole support."""
+        """Render water polygons with proper hole support for significant islands."""
         if style is None:
             style = DEFAULT_WATER_STYLE
 
-        # Render water body polygons with holes
+        # Render water body polygons with holes when significant
         for polygon_data in water_data.get('polygons', []):
             try:
                 # Handle both old format (list of coords) and new format (dict with exterior/holes)
@@ -554,28 +483,35 @@ class WaterProcessor:
                     hole_coords_list = polygon_data.get('holes', [])
 
                     if len(exterior_coords) >= 3:
-                        # Create matplotlib Path for polygon with holes
-                        from matplotlib.path import Path
-                        import matplotlib.patches as patches
+                        # Ensure exterior is a valid polygon before proceeding
+                        if Polygon(exterior_coords).is_valid:
+                            if hole_coords_list:
+                                # Water with significant holes - use Path method
+                                from matplotlib.path import Path
+                                import matplotlib.patches as patches
 
-                        # Build vertices and codes for Path
-                        vertices = []
-                        codes = []
+                                # Build vertices and codes for Path
+                                vertices = []
+                                codes = []
 
-                        # Add exterior ring
-                        vertices.extend(exterior_coords)
-                        codes.extend([Path.MOVETO] + [Path.LINETO] * (len(exterior_coords) - 1))
+                                # Add exterior ring (must be properly closed)
+                                vertices.extend(exterior_coords)
+                                codes.extend([Path.MOVETO] + [Path.LINETO] * (len(exterior_coords) - 2) + [Path.CLOSEPOLY])
 
-                        # Add holes
-                        for hole_coords in hole_coords_list:
-                            if len(hole_coords) >= 3:
-                                vertices.extend(hole_coords)
-                                codes.extend([Path.MOVETO] + [Path.LINETO] * (len(hole_coords) - 1))
+                                # Add holes (each must be properly closed)
+                                for hole_coords in hole_coords_list:
+                                    if len(hole_coords) >= 3:
+                                        vertices.extend(hole_coords)
+                                        codes.extend([Path.MOVETO] + [Path.LINETO] * (len(hole_coords) - 2) + [Path.CLOSEPOLY])
 
-                        # Create path and patch
-                        path = Path(vertices, codes)
-                        patch = patches.PathPatch(path, **style['polygon'])
-                        ax.add_patch(patch)
+                                # Create path and patch
+                                path = Path(vertices, codes)
+                                patch = patches.PathPatch(path, **style['polygon'])
+                                ax.add_patch(patch)
+                            else:
+                                # Water without holes - use simple fill
+                                xs, ys = zip(*exterior_coords)
+                                ax.fill(xs, ys, **style['polygon'])
 
                 else:
                     # Old format - simple polygon
@@ -586,17 +522,25 @@ class WaterProcessor:
 
             except Exception as e:
                 print(f"Warning: Could not render polygon: {e}")
-                continue
+                # Fallback: try to render just the exterior without holes
+                try:
+                    if isinstance(polygon_data, dict):
+                        exterior_coords = polygon_data.get('exterior', [])
+                        if len(exterior_coords) >= 3:
+                            xs, ys = zip(*exterior_coords)
+                            ax.fill(xs, ys, **style['polygon'])
+                except:
+                    continue
 
 # Default water styles
 DEFAULT_WATER_STYLE = {
     'polygon': {
-        'color': '#e8efff',     # Slightly less pale blue
+        'color': '#e3eeff',     # Slightly less pale blue
         'alpha': 0.8,
         'zorder': 3
     },
     'line': {
-        'color': '#e8efff',
+        'color': '#e3eeff',
         'linewidth': 1.5,
         'alpha': 0.8,
         'zorder': 3

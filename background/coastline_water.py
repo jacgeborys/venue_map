@@ -29,6 +29,8 @@ def fetch_coastlines_and_water_boundaries(center_lat, center_lon, radius_km, tra
 
     api = overpy.Overpass()
 
+    # --- START OF MODIFICATION ---
+    # Add island and islet polygons to the query to identify known land areas.
     query = f'''
     [out:json][timeout:300];
     (
@@ -45,17 +47,22 @@ def fetch_coastlines_and_water_boundaries(center_lat, center_lon, radius_km, tra
         
         // Riverbanks (edges of water)
         way["waterway"="riverbank"]({south},{west},{north},{east});
+
+        // KNOWN LAND: Explicitly tagged islands and islets
+        way["place"~"^(island|islet)"]({south},{west},{north},{east});
+        relation["place"~"^(island|islet)"]({south},{west},{north},{east});
     );
     (._;>;);
     out geom;
     '''
+    # --- END OF MODIFICATION ---
 
     try:
         import time
         time.sleep(3)  # Space out API calls
 
         result = api.query(query)
-        print(f"    ✓ Found {len(result.ways)} potential boundary segments")
+        print(f"    ✓ Found {len(result.ways)} potential boundary segments and land features")
 
         return result
 
@@ -463,6 +470,11 @@ def fetch_enhanced_coastline_water(center_lat, center_lon, radius_km, transforme
     # Extract raw coastline segments for polygon export
     coastline_segments = extract_raw_coastline_segments(boundary_result, transformer)
 
+    # --- START OF MODIFICATION ---
+    # Extract known island polygons for the land detection logic
+    island_polygons = extract_island_polygons(boundary_result, transformer)
+    # --- END OF MODIFICATION ---
+
     # CREATE MAP BOUNDARY
     map_boundary = box(
         map_bounds['xlim'][0],
@@ -498,8 +510,11 @@ def fetch_enhanced_coastline_water(center_lat, center_lon, radius_km, transforme
 
     print(f"    Final network: {len(clipped_coastline_segments)} clipped coastlines + {len(frame_boundary_with_vertices)} frame segments = {len(all_segments)} total")
 
-    # Create water polygons with all segments
-    water_polygons = create_complete_water_polygons_from_segments(all_segments, map_bounds, greenery_data)
+    # --- START OF MODIFICATION ---
+    # Pass the island_polygons to the classification function
+    water_polygons = create_complete_water_polygons_from_segments(all_segments, map_bounds, greenery_data, island_polygons)
+    # --- END OF MODIFICATION ---
+
     print(f"    create_complete_water_polygons returned {len(water_polygons)} polygons")
 
     converted = convert_coastline_water_to_polygons(water_polygons)
@@ -620,8 +635,8 @@ def split_coastline_at_boundary_intersections(coastline, map_boundary):
         return [coastline]  # Return original if clipping fails
 
 
-def create_complete_water_polygons_from_segments(coastline_segments, map_bounds, greenery_data=None):
-    """Create water polygons by classifying each polygon based on greenery content."""
+def create_complete_water_polygons_from_segments(coastline_segments, map_bounds, greenery_data=None, island_data=None):
+    """Create water polygons by classifying each polygon based on greenery and known island data."""
 
     try:
         # Create map boundary for area calculations
@@ -654,42 +669,65 @@ def create_complete_water_polygons_from_segments(coastline_segments, map_bounds,
                     continue
             print(f"    Valid greenery polygons: {len(greenery_polygons)}")
 
-        # Classify each polygon as land or water based on greenery content
+        # --- START OF MODIFICATION ---
+        # The island_data is already a list of Shapely polygons, so no conversion is needed.
+        # We just need to check if it exists.
+        known_island_polygons = island_data if island_data else []
+        if known_island_polygons:
+            print(f"    Using {len(known_island_polygons)} known island polygons for classification...")
+        # --- END OF MODIFICATION ---
+
+        # Classify each polygon as land or water
         water_polygons = []
 
         for i, poly in enumerate(valid_polygons):
             area = poly.area
-            area_ratio = area / map_polygon.area
+            if area <= 0: continue
 
-            # Count greenery intersections
-            greenery_count = 0
-            total_greenery_area = 0
+            # --- START OF MODIFIED CLASSIFICATION LOGIC ---
+            is_land = False
+            land_reason = ""
 
-            for greenery_poly in greenery_polygons:
+            # Check 1: Is it a known island?
+            total_island_area = 0
+            for island_poly in known_island_polygons:
                 try:
-                    if poly.intersects(greenery_poly):
-                        intersection = poly.intersection(greenery_poly)
-                        if hasattr(intersection, 'area') and intersection.area > 50:
-                            greenery_count += 1
-                            total_greenery_area += intersection.area
+                    if poly.intersects(island_poly):
+                        intersection = poly.intersection(island_poly)
+                        total_island_area += intersection.area
                 except:
                     continue
 
-            greenery_ratio = total_greenery_area / area if area > 0 else 0
+            # If over 50% of the polygon's area is covered by a known island, it's land.
+            island_ratio = total_island_area / area
+            if island_ratio > 0.5:
+                is_land = True
+                land_reason = f"is a known island ({island_ratio*100:.1f}% coverage)"
 
-            # Classification logic:
-            # - Islands/areas with significant greenery = LAND (don't add to water)
-            # - Areas with little/no greenery = WATER (add to water)
-            has_significant_greenery = greenery_ratio > 0.05  # 5% greenery threshold
+            # Check 2: If it's not a known island, does it have significant greenery?
+            if not is_land:
+                total_greenery_area = 0
+                for greenery_poly in greenery_polygons:
+                    try:
+                        if poly.intersects(greenery_poly):
+                            intersection = poly.intersection(greenery_poly)
+                            total_greenery_area += intersection.area
+                    except:
+                        continue
 
-            print(f"    Polygon {i+1}: {area:.0f} sq m ({area_ratio*100:.1f}% of map)")
-            print(f"      Greenery: {greenery_count} areas, {greenery_ratio*100:.1f}% coverage")
+                greenery_ratio = total_greenery_area / area
+                if greenery_ratio > 0.05:  # 5% greenery threshold
+                    is_land = True
+                    land_reason = f"has significant greenery ({greenery_ratio*100:.1f}% coverage)"
 
-            if has_significant_greenery:
-                print(f"      → LAND (keep as land - has greenery)")
+            # Final classification
+            print(f"    Polygon {i+1}: {area:.0f} sq m")
+            if is_land:
+                print(f"      → LAND ({land_reason})")
             else:
-                print(f"      → WATER (fill with water - no significant greenery)")
+                print(f"      → WATER (no significant land features found)")
                 water_polygons.append(poly)
+            # --- END OF MODIFIED CLASSIFICATION LOGIC ---
 
         print(f"    Classification result: {len(water_polygons)} water polygons, {len(valid_polygons) - len(water_polygons)} land polygons")
 
@@ -748,3 +786,58 @@ def extract_raw_coastline_segments(boundary_result, transformer):
 
     print(f"    Extracted {len(coastline_segments)} raw coastline segments for export")
     return coastline_segments
+
+# --- START OF NEW HELPER FUNCTION ---
+def extract_island_polygons(boundary_result, transformer):
+    """Extract island/islet ways and relations as Shapely Polygons."""
+    island_polygons = []
+
+    # Process Ways tagged as island/islet
+    for way in boundary_result.ways:
+        if way.tags.get('place') in ['island', 'islet']:
+            coords = [(node.lat, node.lon) for node in way.nodes]
+            if len(coords) >= 3:
+                try:
+                    transformed_coords = [transformer.transform(lon, lat) for lat, lon in coords]
+                    poly = Polygon(transformed_coords)
+                    if poly.is_valid and poly.area > 0:
+                        island_polygons.append(poly)
+                except Exception:
+                    continue
+
+    # Process Relations tagged as island/islet (for complex islands with holes)
+    for relation in boundary_result.relations:
+        if relation.tags.get('place') in ['island', 'islet'] and relation.tags.get('type') == 'multipolygon':
+            try:
+                outer_polys = []
+                inner_polys = []
+                for member in relation.members:
+                    if isinstance(member, overpy.RelationWay):
+                        way = boundary_result.get_way(member.ref)
+                        coords = [(node.lat, node.lon) for node in way.nodes]
+                        if len(coords) < 3: continue
+
+                        transformed_coords = [transformer.transform(lon, lat) for lat, lon in coords]
+                        poly = Polygon(transformed_coords)
+                        if not poly.is_valid: continue
+
+                        if member.role == 'outer':
+                            outer_polys.append(poly)
+                        elif member.role == 'inner':
+                            inner_polys.append(poly)
+
+                if outer_polys:
+                    unified_outer = unary_union(outer_polys)
+                    final_island = unified_outer
+                    if inner_polys:
+                        unified_inner = unary_union(inner_polys)
+                        final_island = unified_outer.difference(unified_inner)
+
+                    if final_island.is_valid and final_island.area > 0:
+                        island_polygons.append(final_island)
+            except Exception:
+                continue
+
+    print(f"    Extracted {len(island_polygons)} known island/islet polygons")
+    return island_polygons
+# --- END OF NEW HELPER FUNCTION ---
