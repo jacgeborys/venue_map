@@ -32,7 +32,7 @@ def fetch_coastlines_and_water_boundaries(center_lat, center_lon, radius_km, tra
     # --- START OF MODIFICATION ---
     # Add island and islet polygons to the query to identify known land areas.
     query = f'''
-    [out:json][timeout:300];
+    [out:json][timeout:360];
     (
         // Natural coastlines
         way["natural"="coastline"]({south},{west},{north},{east});
@@ -700,7 +700,7 @@ def create_complete_water_polygons_from_segments(coastline_segments, map_bounds,
 
             # If over 50% of the polygon's area is covered by a known island, it's land.
             island_ratio = total_island_area / area
-            if island_ratio > 0.5:
+            if island_ratio > 0.8:
                 is_land = True
                 land_reason = f"is a known island ({island_ratio*100:.1f}% coverage)"
 

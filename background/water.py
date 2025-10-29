@@ -255,7 +255,7 @@ class WaterProcessor:
 
         # Clean, focused query for water bodies
         query = f'''
-        [out:json][timeout:300];
+        [out:json][timeout:420];
         (
             way["natural"="water"]({south},{west},{north},{east});
             way["natural"="bay"]({south},{west},{north},{east});
@@ -278,12 +278,12 @@ class WaterProcessor:
         '''
 
         # Retry mechanism for rate limiting
-        max_retries = 3
+        max_retries = 5
         for attempt in range(max_retries):
             try:
                 if attempt > 0:
                     import time
-                    wait_time = 15 * attempt  # Wait longer each time
+                    wait_time = 17 * attempt  # Wait longer each time
                     print(f"    Waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
                     time.sleep(wait_time)
 

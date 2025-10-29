@@ -29,14 +29,9 @@ DPI = 300
 DEFAULT_FIGURE_SIZE = (16, 12)
 COPYRIGHT_TEXT = '© Jacek Gęborys, OpenStreetMap contributors'
 
-# Color Schemes
-GASTRONOMY_COLORS = {
-    'bars': '#e82ad8',
-    'cafes': '#eda51f',
-    'restaurants': '#1079e3',
-    'clubs': '#9b59b6'
-}
+# --- DELETED THE UNUSED GASTRONOMY_COLORS DICTIONARY FROM HERE ---
 
+# Labels for Gastronomy Categories (Still Used for the Legend)
 GASTRONOMY_LABELS = {
     'bars': 'Bars & Pubs',
     'cafes': 'Cafes & Bakeries',

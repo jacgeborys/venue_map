@@ -15,6 +15,10 @@ def main():
     gastronomy_parser.add_argument('--clubs', action='store_true', help='Include nightclubs')
     gastronomy_parser.add_argument('--background', choices=['none', 'roads', 'full'],
                                  default='roads', help='Background type')
+    # --- START OF MODIFICATION ---
+    gastronomy_parser.add_argument('--palette', choices=['default', 'dark'], default='default',
+                                 help='Color palette for the map')
+    # --- END OF MODIFICATION ---
 
     list_parser = subparsers.add_parser('list', help='List available cities')
 
@@ -36,12 +40,16 @@ def run_gastronomy_maps(args):
 
     if args.city.lower() == 'all':
         for city_key in CITIES.keys():
-            generator.generate_map(city_key, args.clubs, args.background)
+            # --- START OF MODIFICATION ---
+            generator.generate_map(city_key, args.clubs, args.background, palette=args.palette)
+            # --- END OF MODIFICATION ---
     else:
-        generator.generate_map(args.city.lower(), args.clubs, args.background)
+        # --- START OF MODIFICATION ---
+        generator.generate_map(args.city.lower(), args.clubs, args.background, palette=args.palette)
+        # --- END OF MODIFICATION ---
 
 if __name__ == "__main__":
     # For direct execution in PyCharm - generate all gastronomy maps
     import sys
-    sys.argv = ['main.py', 'gastronomy', 'all', '--background', 'full']
+    sys.argv = ['main.py', 'gastronomy', 'all', '--clubs', '--background', 'full', '--palette', 'dark']
     main()
