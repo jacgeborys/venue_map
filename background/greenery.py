@@ -18,10 +18,10 @@ class GreeneryProcessor:
         query = f"""[out:json][timeout:180][bbox:{bbox}];
     (
       way["natural"~"^(wood|forest|scrub|grassland|heath|meadow)$"];
-      way["landuse"~"^(forest|grass|meadow|orchard|vineyard|recreation_ground)$"];
+      way["landuse"~"^(forest|grass|meadow|orchard|vineyard|recreation_ground|allotments|farmland)$"];
       way["leisure"~"^(park|garden|nature_reserve|golf_course|pitch|playground|sports_centre)$"];
       relation["natural"~"^(wood|forest|scrub|grassland|heath|meadow)$"];
-      relation["landuse"~"^(forest|grass|meadow|orchard|vineyard|recreation_ground)$"];
+      relation["landuse"~"^(forest|grass|meadow|orchard|vineyard|recreation_ground|allotments|farmland)$"];
       relation["leisure"~"^(park|garden|nature_reserve|golf_course)$"];
       relation["type"="multipolygon"]["natural"~"^(wood|forest|scrub|grassland|heath|meadow)$"];
       relation["type"="multipolygon"]["landuse"~"^(forest|grass|meadow|orchard|vineyard|recreation_ground)$"];
