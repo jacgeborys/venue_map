@@ -18,14 +18,14 @@ class GreeneryProcessor:
         query = f"""[out:json][timeout:180][bbox:{bbox}];
     (
       way["natural"~"^(wood|forest|scrub|grassland|heath|meadow)$"];
-      way["landuse"~"^(forest|grass|meadow|orchard|vineyard|recreation_ground|allotments|farmland)$"];
-      way["leisure"~"^(park|garden|nature_reserve|golf_course|pitch|playground|sports_centre)$"];
+      way["landuse"~"^(forest|grass|meadow|orchard|vineyard|recreation_ground|allotments|farmland|cemetery)$"];
+      way["leisure"~"^(park|garden|golf_course|pitch|playground|sports_centre)$"];
       relation["natural"~"^(wood|forest|scrub|grassland|heath|meadow)$"];
-      relation["landuse"~"^(forest|grass|meadow|orchard|vineyard|recreation_ground|allotments|farmland)$"];
-      relation["leisure"~"^(park|garden|nature_reserve|golf_course)$"];
+      relation["landuse"~"^(forest|grass|meadow|orchard|vineyard|recreation_ground|allotments|farmland|cemetery)$"];
+      relation["leisure"~"^(park|garden|golf_course)$"];
       relation["type"="multipolygon"]["natural"~"^(wood|forest|scrub|grassland|heath|meadow)$"];
-      relation["type"="multipolygon"]["landuse"~"^(forest|grass|meadow|orchard|vineyard|recreation_ground)$"];
-      relation["type"="multipolygon"]["leisure"~"^(park|garden|nature_reserve|golf_course)$"];
+      relation["type"="multipolygon"]["landuse"~"^(forest|grass|meadow|orchard|vineyard|recreation_ground|allotments|farmland|cemetery)$"];
+      relation["type"="multipolygon"]["leisure"~"^(park|garden|golf_course)$"];
     );
     out geom;"""
 
@@ -61,7 +61,7 @@ class GreeneryProcessor:
                         tags.get('natural') in ['wood', 'forest', 'scrub', 'grassland', 'heath', 'meadow'] or
                         tags.get('landuse') in ['forest', 'grass', 'meadow', 'orchard', 'vineyard',
                                                 'recreation_ground'] or
-                        tags.get('leisure') in ['park', 'garden', 'nature_reserve', 'golf_course']
+                        tags.get('leisure') in ['park', 'garden', 'golf_course']
                 ):
                     # Process outer member ways
                     members = element.get('members', [])

@@ -13,7 +13,7 @@ GASTRONOMY_COLORS_DARK = {
     'restaurants': '#0b8cff',
     'cafes': '#eda008',        # <<< CHANGED: Now slightly more orangeish
     'bars': '#fe0094',
-    'clubs': '#e0004b'
+    'clubs': '#d90033'
 }
 
 # --- Default Light Palette ---
@@ -36,7 +36,7 @@ DEFAULT_PALETTE = {
 DARK_PALETTE = {
     'background': '#1c1c1c',
     'built_up': '#2a2a2a',
-    'water': '#293645',
+    'water': '#2e3c4d',
     # 'water': '#334155',
     'greenery': '#2E4034',
     'road_major': '#505050',

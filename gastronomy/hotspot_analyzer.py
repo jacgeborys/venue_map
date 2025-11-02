@@ -2,70 +2,85 @@
 
 import numpy as np
 from sklearn.cluster import DBSCAN
-from collections import Counter
+from shapely.geometry import MultiPoint
 
 
 class HotspotAnalyzer:
+    """
+    Implements a "Best-of-Each-Category" analysis to guarantee a balanced
+    representation of all significant specialist hubs.
+    """
+
     def __init__(self, venues_by_category):
         self.venues_by_category = venues_by_category
-        self.all_venues_np = self._prepare_data()
 
-    def _prepare_data(self):
-        """Combine all venue coordinates into a single NumPy array for clustering."""
-        all_venues_list = []
-        for category, venues in self.venues_by_category.items():
-            all_venues_list.extend(venues)
-
-        # Convert to a NumPy array of shape (n_venues, 2)
-        return np.array(all_venues_list)
-
-    def find_hotspots(self, max_distance_m=150, min_venues_in_hotspot=10):
+    def find_hubs(self):
         """
-        Performs DBSCAN clustering to find gastronomy hotspots.
-
-        Args:
-            max_distance_m (int): The maximum distance (in meters) between two venues
-                                  for one to be considered as in the neighborhood of the other.
-            min_venues_in_hotspot (int): The number of venues in a neighborhood for a
-                                         point to be considered as a core point (a hotspot center).
-
-        Returns:
-            A dictionary containing the clustered labels, the number of hotspots,
-            and a summary of each hotspot.
+        Discovers all clusters for each category and curates the top N from each,
+        ensuring every category gets represented.
         """
-        if self.all_venues_np.shape[0] < min_venues_in_hotspot:
-            print("    Not enough venues to perform hotspot analysis.")
-            return None
+        print("    Running 'Best-of-Each-Category' analysis...")
+
+        # --- PHASE 1: DISCOVERY ---
+        all_discovered_clusters = []
+
+        # We use the balanced and adaptive thresholds
+        threshold_config = [
+            # ("Restaurants", ["restaurants"], 8, 0.25, 15),
+            ("Cafes", ["cafes"], 5, 0.4, 8),
+            ("Nightlife", ["bars", "clubs"], 5, 0.5, 5)
+        ]
+
+        for character, categories, base, sqrt_factor, abs_min in threshold_config:
+            points_list = [v for cat in categories for v in self.venues_by_category.get(cat, [])]
+            points = np.array(points_list)
+            total_venues = len(points)
+            if total_venues == 0: continue
+
+            min_samples = max(abs_min, int(base + (total_venues ** 0.5) * sqrt_factor))
+            print(f"    - {character}: {total_venues} venues. Dynamic threshold set to {min_samples}.")
+            if total_venues < min_samples: continue
+
+            # Run DBSCAN with our balanced eps (search radius)
+            db = DBSCAN(eps=200, min_samples=min_samples).fit(points)
+
+            found_count = 0
+            for label in set(db.labels_) - {-1}:
+                found_count += 1
+                cluster_points = points[db.labels_ == label]
+                all_discovered_clusters.append({
+                    'count': len(cluster_points),
+                    'hull': MultiPoint(cluster_points).convex_hull,
+                    'character': character
+                })
+
+            if found_count > 0:
+                print(f"      -> Found {found_count} cluster(s).")
+
+        print(f"    Discovery Phase: Found {len(all_discovered_clusters)} total clusters across all categories.")
+
+        # --- PHASE 2: GUARANTEED CURATION ---
+        if not all_discovered_clusters:
+            return []
+
+        # Separate all discovered clusters by their category
+        by_category = {"Restaurants": [], "Cafes": [], "Nightlife": []}
+        for cluster in all_discovered_clusters:
+            by_category[cluster['character']].append(cluster)
+
+        # For each category, sort its clusters by size
+        for cat in by_category:
+            by_category[cat].sort(key=lambda x: x['count'], reverse=True)
+
+        # Build the final list by taking the top N from each category
+        final_selection = []
+        # final_selection.extend(by_category["Restaurants"][:4])
+        final_selection.extend(by_category["Nightlife"][:4])
+        final_selection.extend(by_category["Cafes"][:2])
+
+        # Sort the final combined list by count for a clean drawing order
+        final_selection.sort(key=lambda x: x['count'], reverse=True)
 
         print(
-            f"    Running DBSCAN to find hotspots (max_dist={max_distance_m}m, min_venues={min_venues_in_hotspot})...")
-
-        # DBSCAN works with the actual coordinates (which are in meters thanks to your UTM projection)
-        db = DBSCAN(eps=max_distance_m, min_samples=min_venues_in_hotspot).fit(self.all_venues_np)
-
-        # The 'labels_' attribute contains the cluster ID for each point.
-        # -1 indicates a "noise" point (not part of any cluster).
-        labels = db.labels_
-
-        # Calculate summary statistics
-        num_hotspots = len(set(labels)) - (1 if -1 in labels else 0)
-        print(f"    ✓ Found {num_hotspots} distinct gastronomy hotspots.")
-
-        # Analyze the composition of each hotspot
-        hotspot_summary = {}
-        if num_hotspots > 0:
-            for i in range(num_hotspots):
-                cluster_points = self.all_venues_np[labels == i]
-                # You could extend this to analyze the type of venues in each cluster
-                hotspot_summary[i] = {
-                    'venue_count': len(cluster_points),
-                    'centroid': np.mean(cluster_points, axis=0)
-                }
-
-        return {
-            'labels': labels,
-            'num_hotspots': num_hotspots,
-            'summary': hotspot_summary,
-            'noise_points': self.all_venues_np[labels == -1],
-            'clustered_points': self.all_venues_np[labels != -1]
-        }
+            f"    Curation Phase: Selected the top hubs from each category, resulting in {len(final_selection)} annotations.")
+        return final_selection
