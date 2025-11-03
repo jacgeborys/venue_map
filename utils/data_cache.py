@@ -19,7 +19,7 @@ def get_city_cache_dir(city_key):
 def save_data_to_cache(raw_data, city_key):
     """
     Saves each data layer to its own separate file within a city-specific folder.
-    This version correctly handles all layers, including the new 'coastlines' layer.
+    Enhanced version that properly handles relations like Casa de Campo.
     """
     city_cache_dir = get_city_cache_dir(city_key)
     print(f"    Saving data for {city_key} to folder: {city_cache_dir}")
@@ -29,7 +29,7 @@ def save_data_to_cache(raw_data, city_key):
         for layer_name, data in raw_data['background'].items():
             if not data: continue
 
-            # --- START OF THE DEFINITIVE BUG FIX ---
+            # --- ENHANCED SAVE PROCESS ---
 
             # Step 1: Handle the special case for the water object's pickle file
             if layer_name == 'water' and '_overpy_result' in data:
@@ -38,12 +38,21 @@ def save_data_to_cache(raw_data, city_key):
                     pickle.dump(data['_overpy_result'], f)
                 print(f"      ✓ Saved 'water' object to {pkl_path}.")
 
-            # Step 2: A single, unified process to save ALL layers (including water and coastlines) to GPKG
+            # Step 2: Save the complete raw JSON data (CRITICAL for relations like Casa de Campo)
+            if 'elements' in data:
+                # Save the complete JSON structure that includes relations
+                json_path = os.path.join(city_cache_dir, f"{layer_name}_complete.pkl")
+                with open(json_path, 'wb') as f:
+                    pickle.dump(data, f)
+                print(f"      ✓ Saved complete '{layer_name}' data to {json_path}.")
+
+            # Step 3: Also save to GPKG for visualization/debugging (ways only)
             source_elements = []
             if '_overpy_result' in data:  # For water
                 source_elements = data['_overpy_result'].ways
             elif 'elements' in data:  # For roads, greenery, and coastlines
-                source_elements = data.get('elements', [])
+                # Only save ways to GPKG, not relations (they're in the pickle)
+                source_elements = [el for el in data.get('elements', []) if el.get('type') == 'way']
             else:
                 continue
 
@@ -64,7 +73,6 @@ def save_data_to_cache(raw_data, city_key):
                 layer_path = os.path.join(city_cache_dir, f"{layer_name}.gpkg")
                 gdf.to_file(layer_path, driver="GPKG")
                 print(f"      ✓ Saved '{layer_name}' layer to {layer_path}.")
-            # --- END OF THE DEFINITIVE BUG FIX ---
 
     # --- Save Venue Layers (Unchanged, this part is working well) ---
     if raw_data.get('venues'):
@@ -85,9 +93,11 @@ def save_data_to_cache(raw_data, city_key):
                 gdf.to_file(layer_path, driver="GPKG")
                 print(f"      ✓ Saved 'venues_{category}' layer to {layer_path}.")
 
+
 def load_data_from_cache(city_key):
     """
     Loads data from a city-specific folder, reading each file as a separate layer.
+    Enhanced to properly load relations from pickle files.
     """
     city_cache_dir = get_city_cache_dir(city_key)
     if not os.path.isdir(city_cache_dir):
@@ -104,15 +114,29 @@ def load_data_from_cache(city_key):
             raw_data['background']['water'] = {'_overpy_result': pickle.load(f)}
         print("      ✓ Loaded 'water' data from pickle.")
 
-    # Load all GPKG files in the directory
+    # Load complete data files (includes relations) - PRIORITY LOADING
+    for filename in os.listdir(city_cache_dir):
+        if filename.endswith('_complete.pkl'):
+            layer_name = filename.replace('_complete.pkl', '')
+            complete_path = os.path.join(city_cache_dir, filename)
+            try:
+                with open(complete_path, 'rb') as f:
+                    complete_data = pickle.load(f)
+                    raw_data['background'][layer_name] = complete_data
+                print(f"      ✓ Loaded complete '{layer_name}' data (with relations) from pickle.")
+            except Exception as e:
+                print(f"    ! Warning: Could not load complete data file '{filename}': {e}")
+
+    # Load remaining GPKG files for layers that don't have complete pickle files
     for filename in os.listdir(city_cache_dir):
         if not filename.endswith('.gpkg'): continue
 
         layer_path = os.path.join(city_cache_dir, filename)
         layer_name = filename.replace('.gpkg', '')
 
-        # Don't re-load the water geometry, we have the pickle object
+        # Skip if we already loaded this layer from complete pickle
         if layer_name == 'water': continue
+        if layer_name in raw_data['background']: continue
 
         try:
             gdf = gpd.read_file(layer_path)

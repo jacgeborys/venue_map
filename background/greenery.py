@@ -29,21 +29,29 @@ class GreeneryProcessor:
         landuse_tags = "forest|meadow|farmland|orchard|vineyard|recreation_ground|allotments|grass"
         leisure_tags = "park|garden|golf_course|pitch|playground"
 
-        # This query is robust and provides all necessary data, including complex relations with holes.
+        # FIXED QUERY: Use a two-stage approach to ensure we get relations with members in the area
         query = f"""
         [out:json][timeout:300];
         (
+          // First: Get all ways in the area
           way["natural"~"^({natural_tags})$"]({bbox});
-          relation["natural"~"^({natural_tags})$"]({bbox});
           way["landuse"~"^({landuse_tags})$"]({bbox});
-          relation["landuse"~"^({landuse_tags})$"]({bbox});
           way["leisure"~"^({leisure_tags})$"]({bbox});
+
+          // Second: Get relations that have members in the area (not just bbox-filtered relations)
+          rel(bw)["natural"~"^({natural_tags})$"]["type"="multipolygon"];
+          rel(bw)["landuse"~"^({landuse_tags})$"]["type"="multipolygon"];
+          rel(bw)["leisure"~"^({leisure_tags})$"]["type"="multipolygon"];
+
+          // Third: Also include relations directly in the bbox as backup
+          relation["natural"~"^({natural_tags})$"]({bbox});
+          relation["landuse"~"^({landuse_tags})$"]({bbox});
           relation["leisure"~"^({leisure_tags})$"]({bbox});
         );
         (._;>;);
         out geom;
         """
-        print(f"    Fetching all greenery types...")
+        print(f"    Fetching all greenery types with enhanced relation detection...")
         try:
             # --- THE CRITICAL FIX: Return the raw JSON, NOT an Overpy object ---
             response_json = self.client.query(query, "greenery")
