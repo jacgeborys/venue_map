@@ -3,6 +3,7 @@
 import geopandas as gpd
 from shapely.geometry import LineString, box, Point, Polygon
 from shapely.ops import polygonize, unary_union
+from shapely.validation import make_valid
 import os
 import numpy as np
 
@@ -68,10 +69,13 @@ def main():
         for geom in greenery_gdf_proj.geometry:
             if geom and not geom.is_empty and isinstance(geom, LineString) and len(geom.coords) >= 3:
                 try:
-                    greenery_polygons.append(Polygon(geom.coords))
+                    # --- CRITICAL FIX: Clean invalid geometries using make_valid ---
+                    poly = Polygon(geom.coords)
+                    cleaned_poly = make_valid(poly)
+                    greenery_polygons.append(cleaned_poly)
                 except:
                     continue
-        print(f"  ✓ Loaded and converted {len(greenery_polygons)} greenery polygons.")
+        print(f"  ✓ Loaded and converted {len(greenery_polygons)} cleaned greenery polygons.")
 
     # 2. Polygonize (unchanged)
     xmin, xmax = map_bounds['xlim'];
@@ -93,6 +97,8 @@ def main():
     print("  -> Classifying polygons using hybrid rules...")
     classified_polygons = []
     for poly in result_polygons:
+        # --- ADDITIONAL FIX: Clean the result polygons too ---
+        poly = make_valid(poly)
 
         # Rule 1: Use the Right-Hand Rule to get an initial classification
         initial_type = 'unknown'
@@ -119,8 +125,13 @@ def main():
         final_type = initial_type
         if initial_type != 'land':
             # If it has any significant greenery, override the classification to LAND.
-            if any(poly.intersects(gp) and poly.intersection(gp).area > 20000 for gp in greenery_polygons):
-                final_type = 'land'
+            # --- ROBUST INTERSECTION: Use try-catch for safety ---
+            try:
+                if any(poly.intersects(gp) and poly.intersection(gp).area > 20000 for gp in greenery_polygons):
+                    final_type = 'land'
+            except Exception as e:
+                print(f"    Warning: Geometry intersection failed, skipping greenery check: {e}")
+                # Keep the initial_type if intersection fails
 
         classified_polygons.append({'polygon': poly, 'type': final_type})
     # --- END OF THE DEFINITIVE HYBRID CLASSIFICATION ---

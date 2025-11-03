@@ -241,7 +241,7 @@ CITIES = {
     },
     'tbilisi': {
         'name': 'Tbilisi',
-        'center': (41.7151, 44.8271),
+        'center': (41.7151, 44.8071),
         'bounds_km': 10,
         'utm_zone': 38  # UTM Zone 38N for Georgia
     },

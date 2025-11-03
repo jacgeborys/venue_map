@@ -16,12 +16,20 @@ GASTRONOMY_COLORS_DARK = {
     'clubs': '#d90033'
 }
 
+DEFAULT_GREENERY_STYLES = {
+    'forest': {'facecolor': '#d1e8cf', 'zorder': 2.2, 'edgecolor': 'none'},
+    'farmland': {'facecolor': '#e1f0d5', 'zorder': 2.1, 'edgecolor': 'none'}, # Slightly lighter
+    'leisure': {'facecolor': '#cce6c3', 'zorder': 2.0, 'edgecolor': 'none'}  # Parks, slightly more saturated
+}
+
 # --- Default Light Palette ---
 DEFAULT_PALETTE = {
     'background': '#f7f5f2',
     'built_up': '#ebebeb',
     'water': '#e3eeff',
-    'greenery': '#d1e8cf',
+    'greenery_forest': '#d1e8cf',
+    'greenery_farmland': '#e1f0d5', # Lighter
+    'greenery_leisure': '#cce6c3', # Parks
     'road_major': '#ffffff',
     'road_medium': '#ffffff',
     'road_minor': '#ffffff',
@@ -36,9 +44,10 @@ DEFAULT_PALETTE = {
 DARK_PALETTE = {
     'background': '#1c1c1c',
     'built_up': '#2a2a2a',
-    'water': '#2e3c4d',
-    # 'water': '#334155',
-    'greenery': '#2E4034',
+    'water': '#334155',
+    'greenery_forest': '#2E4034', # Dark, moody forest green
+    'greenery_farmland': '#35473A', # Slightly lighter/desaturated dark green
+    'greenery_leisure': '#2A3A2F', # Parks, slightly different dark green
     'road_major': '#505050',
     'road_medium': '#404040',
     'road_minor': '#303030',
