@@ -89,12 +89,12 @@ def run_generate(args):
 if __name__ == "__main__":
     import sys
     # === CONFIG 1: DATA FETCHING ===
-    sys.argv = ['main.py', 'fetch', 'all']
+    sys.argv = ['main.py', 'fetch', 'vilnius']
     main()
 
 # === CONFIG 2: MAP GENERATION (RUN AFTER FETCH IS COMPLETE) ===
     from config.cities import CITIES
-    for city_key in CITIES.keys():
+    for city_key in ['vilnius']:
         import sys
         print(f"\n--- Queuing map generation for: {city_key.upper()} ---")
         sys.argv = ['main.py', 'generate', city_key, '--clubs', '--palette', 'dark', '--hotspots']

@@ -11,7 +11,7 @@ from config.cities import CITIES
 from utils.coordinate_transform import create_transformer, get_map_bounds
 
 # --- Configuration ---
-CITY_KEY = 'new_york'
+CITY_KEY = 'san_francisco'
 OUTPUT_FILENAME = "debug_polygons_{}.gpkg".format(CITY_KEY)
 
 # --- Define paths ---

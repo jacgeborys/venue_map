@@ -143,7 +143,7 @@ class GastronomyMapGenerator:
             if venues:
                 xs, ys = zip(*venues)
                 base_color, outline_color = palette['gastronomy'][category], darken_color(
-                    palette['gastronomy'][category], 0.5)
+                    palette['gastronomy'][category], 0.6)
                 ax.scatter(xs, ys, c=base_color, s=14, alpha=0.9, label=GASTRONOMY_LABELS[category],
                            edgecolors=outline_color, linewidth=0.5, zorder=5)
         legend_props = self._get_font_properties('regular', 12)

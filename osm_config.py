@@ -2,7 +2,6 @@
 OSM Configuration for Transit Map Generator - Final Robust Version
 """
 import math
-from exceptions import get_route_exception
 
 def create_bbox_from_center(center_lat, center_lon, radius_km):
     """Create a bounding box around center coordinates, robust for all hemispheres."""
@@ -56,11 +55,6 @@ def classify_route(route_element):
     """
     tags = route_element.get('tags', {})
     relation_id = route_element.get('id')
-
-    # Check for exceptions first
-    exception = get_route_exception(relation_id)
-    if exception is not False:
-        return exception  # Returns None (exclude) or a specific type (reclassify)
 
     # Check explicit state tags
     if tags.get('state') in ['proposed', 'construction', 'disused', 'abandoned']:

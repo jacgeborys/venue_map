@@ -110,7 +110,7 @@ def process_coastlines_from_cache(coastline_data, greenery_data, transformer, ma
         if initial_type != 'land':
             # --- ROBUST GREENERY CHECK: Use try-catch for safety ---
             try:
-                if any(poly.intersects(gp) and poly.intersection(gp).area > 20000 for gp in greenery_polygons):
+                if any(poly.intersects(gp) and poly.intersection(gp).area > 50000 for gp in greenery_polygons):
                     final_type = 'land'
             except Exception as e:
                 print(f"    Warning: Geometry intersection failed during classification: {e}")

@@ -136,7 +136,7 @@ class GreeneryProcessor:
 
         return rings
 
-    def _points_are_close(self, p1, p2, tolerance=1e-6):
+    def _points_are_close(self, p1, p2, tolerance=1e-4):
         """Check if two points are within tolerance distance."""
         return abs(p1[0] - p2[0]) < tolerance and abs(p1[1] - p2[1]) < tolerance
 
